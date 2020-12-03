@@ -7,7 +7,7 @@ using namespace muduo;
 using namespace muduo::net;
 
 typedef std::map<string, string> UserMap;
-UserMap users;
+UserMap users;//空的user map
 
 string getUser(const string& user)
 {
@@ -38,6 +38,7 @@ int main()
 {
   EventLoop loop;
   TcpServer server(&loop, InetAddress(1079), "Finger");
+  //注册消息可读时的回调函数：函数内遇到\r\n，查找用户，返回结果并断开连接
   server.setMessageCallback(onMessage);
   server.start();
   loop.loop();

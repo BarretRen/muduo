@@ -13,6 +13,7 @@ EchoServer::EchoServer(muduo::net::EventLoop* loop,
                        const muduo::net::InetAddress& listenAddr)
   : server_(loop, listenAddr, "EchoServer")
 {
+  //注册事件回调函数，基于事件编程
   server_.setConnectionCallback(
       std::bind(&EchoServer::onConnection, this, _1));
   server_.setMessageCallback(

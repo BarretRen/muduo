@@ -5,7 +5,8 @@ set -x
 SOURCE_DIR=`pwd`
 BUILD_DIR=${BUILD_DIR:-../build}
 BUILD_TYPE=${BUILD_TYPE:-release}
-INSTALL_DIR=${INSTALL_DIR:-../${BUILD_TYPE}-install-cpp11}
+# INSTALL_DIR=${INSTALL_DIR:-../${BUILD_TYPE}-install-cpp11}
+INSTALL_DIR=/usr
 CXX=${CXX:-g++}
 
 ln -sf $BUILD_DIR/$BUILD_TYPE-cpp11/compile_commands.json

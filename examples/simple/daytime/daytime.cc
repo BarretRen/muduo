@@ -28,7 +28,7 @@ void DaytimeServer::onConnection(const TcpConnectionPtr& conn)
            << (conn->connected() ? "UP" : "DOWN");
   if (conn->connected())
   {
-    conn->send(Timestamp::now().toFormattedString() + "\n");
+    conn->send(Timestamp::now().toFormattedString() + "\n");//获取当前时间并返回给客户端
     conn->shutdown();
   }
 }

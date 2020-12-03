@@ -25,7 +25,7 @@ ChargenServer::ChargenServer(EventLoop* loop,
   {
     loop->runEvery(3.0, std::bind(&ChargenServer::printThroughput, this));
   }
-
+  //构建要发送的信息内容
   string line;
   for (int i = 33; i < 127; ++i)
   {

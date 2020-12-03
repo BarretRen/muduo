@@ -51,7 +51,7 @@ class SudokuServer
       if (crlf)//找到\r\n，说明找到完整的一条请求
       {
         string request(buf->peek(), crlf);//获取请求内容，保存为string
-        buf->retrieveUntil(crlf + 2);//清除缓冲区
+        buf->retrieveUntil(crlf + 2);//取出所有数据，即清除缓冲区
         len = buf->readableBytes();
         if (!processRequest(conn, request))
         {

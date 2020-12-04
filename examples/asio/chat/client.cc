@@ -21,6 +21,7 @@ class ChatClient : noncopyable
   {
     client_.setConnectionCallback(
         std::bind(&ChatClient::onConnection, this, _1));
+    //和server端一样，指定codec的成员函数先处理接收的消息，这样app不需要关心消息格式
     client_.setMessageCallback(
         std::bind(&LengthHeaderCodec::onMessage, &codec_, _1, _2, _3));
     client_.enableRetry();
@@ -38,7 +39,7 @@ class ChatClient : noncopyable
 
   void write(const StringPiece& message)
   {
-    MutexLockGuard lock(mutex_);
+    MutexLockGuard lock(mutex_);//发送数据时，需要先获取锁，保护connection_指针
     if (connection_)
     {
       codec_.send(get_pointer(connection_), message);
@@ -52,7 +53,7 @@ class ChatClient : noncopyable
              << conn->peerAddress().toIpPort() << " is "
              << (conn->connected() ? "UP" : "DOWN");
 
-    MutexLockGuard lock(mutex_);
+    MutexLockGuard lock(mutex_);//保护connection_指针，防止同时修改指针和write
     if (conn->connected())
     {
       connection_ = conn;
@@ -67,12 +68,12 @@ class ChatClient : noncopyable
                        const string& message,
                        Timestamp)
   {
-    printf("<<< %s\n", message.c_str());
+    printf("<<< %s\n", message.c_str());//打印客户端收到的数据，printf是线程安全的，不能用cout
   }
 
   TcpClient client_;
   LengthHeaderCodec codec_;
-  MutexLock mutex_;
+  MutexLock mutex_;//用于保护connection_
   TcpConnectionPtr connection_ GUARDED_BY(mutex_);
 };
 
@@ -84,9 +85,10 @@ int main(int argc, char* argv[])
     EventLoopThread loopThread;
     uint16_t port = static_cast<uint16_t>(atoi(argv[2]));
     InetAddress serverAddr(argv[1], port);
-
+    //创建子线程负责reactor监听连接IO事件
     ChatClient client(loopThread.startLoop(), serverAddr);
     client.connect();
+    //主线程负责监听标准输入
     std::string line;
     while (std::getline(std::cin, line))
     {

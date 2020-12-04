@@ -97,7 +97,7 @@ class ChatServer : noncopyable
 
   TcpServer server_;
   LengthHeaderCodec codec_;
-  typedef ThreadLocalSingleton<ConnectionList> LocalConnections;
+  typedef ThreadLocalSingleton<ConnectionList> LocalConnections;//使用ThreadLocalSingleton
 
   MutexLock mutex_;
   std::set<EventLoop*> loops_ GUARDED_BY(mutex_);

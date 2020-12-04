@@ -22,11 +22,14 @@ class LengthHeaderCodec : muduo::noncopyable
                  muduo::net::Buffer* buf,
                  muduo::Timestamp receiveTime)
   {
+    //收到消息需要解析，分解出完整消息
     while (buf->readableBytes() >= kHeaderLen) // kHeaderLen == 4
     {
       // FIXME: use Buffer::peekInt32()
       const void* data = buf->peek();
+      //获取消息开始的4个字节，要求至少已经收取4个字节的data
       int32_t be32 = *static_cast<const int32_t*>(data); // SIGBUS
+      //转换为主机字节序，得到消息长度
       const int32_t len = muduo::net::sockets::networkToHost32(be32);
       if (len > 65536 || len < 0)
       {
@@ -35,11 +38,11 @@ class LengthHeaderCodec : muduo::noncopyable
         break;
       }
       else if (buf->readableBytes() >= len + kHeaderLen)
-      {
-        buf->retrieve(kHeaderLen);
-        muduo::string message(buf->peek(), len);
-        messageCallback_(conn, message, receiveTime);
-        buf->retrieve(len);
+      {//当收到的数据长度达到指定的长度时才进入if解析，否则继续接收数据
+        buf->retrieve(kHeaderLen);//清除buf中长度的4个字节
+        muduo::string message(buf->peek(), len);//获取实际消息内容
+        messageCallback_(conn, message, receiveTime);//将数据交给回调函数处理
+        buf->retrieve(len);//清除buf中消息缓存
       }
       else
       {
@@ -54,9 +57,11 @@ class LengthHeaderCodec : muduo::noncopyable
   {
     muduo::net::Buffer buf;
     buf.append(message.data(), message.size());
+    //发送时需要添加长度消息头，这里先获取消息长度
     int32_t len = static_cast<int32_t>(message.size());
+    //转换为网络字节序（32为，4个字节）
     int32_t be32 = muduo::net::sockets::hostToNetwork32(len);
-    buf.prepend(&be32, sizeof be32);
+    buf.prepend(&be32, sizeof be32);//添加到消息头部
     conn->send(&buf);
   }
 

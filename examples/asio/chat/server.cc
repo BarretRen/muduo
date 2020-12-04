@@ -22,6 +22,7 @@ class ChatServer : noncopyable
   {
     server_.setConnectionCallback(
         std::bind(&ChatServer::onConnection, this, _1));
+    //指定codec的成员函数先处理接收的消息，这样app不需要关心消息格式
     server_.setMessageCallback(
         std::bind(&LengthHeaderCodec::onMessage, &codec_, _1, _2, _3));
   }
@@ -37,7 +38,7 @@ class ChatServer : noncopyable
     LOG_INFO << conn->peerAddress().toIpPort() << " -> "
              << conn->localAddress().toIpPort() << " is "
              << (conn->connected() ? "UP" : "DOWN");
-
+    //删加连接，server需要保存所有active的连接
     if (conn->connected())
     {
       connections_.insert(conn);
@@ -56,14 +57,14 @@ class ChatServer : noncopyable
         it != connections_.end();
         ++it)
     {
-      codec_.send(get_pointer(*it), message);
+      codec_.send(get_pointer(*it), message);//发送消息到每个客户端
     }
   }
 
   typedef std::set<TcpConnectionPtr> ConnectionList;
   TcpServer server_;
   LengthHeaderCodec codec_;
-  ConnectionList connections_;
+  ConnectionList connections_;//集合类型
 };
 
 int main(int argc, char* argv[])

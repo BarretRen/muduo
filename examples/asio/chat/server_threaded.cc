@@ -12,6 +12,7 @@
 using namespace muduo;
 using namespace muduo::net;
 
+//ChatServer增强：多线程的服务端，用互斥锁保护共享数据
 class ChatServer : noncopyable
 {
  public:
@@ -71,7 +72,7 @@ class ChatServer : noncopyable
   TcpServer server_;
   LengthHeaderCodec codec_;
   MutexLock mutex_;
-  ConnectionList connections_ GUARDED_BY(mutex_);
+  ConnectionList connections_ GUARDED_BY(mutex_);//集合类型
 };
 
 int main(int argc, char* argv[])
@@ -85,7 +86,7 @@ int main(int argc, char* argv[])
     ChatServer server(&loop, serverAddr);
     if (argc > 2)
     {
-      server.setThreadNum(atoi(argv[2]));
+      server.setThreadNum(atoi(argv[2]));//设置线程数
     }
     server.start();
     loop.loop();

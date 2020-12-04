@@ -12,6 +12,7 @@
 using namespace muduo;
 using namespace muduo::net;
 
+//ChatServer增强：多线程服务端，使用智能指针代替set类型保存connection，并用copy-on-write方法降低锁竞争
 class ChatServer : noncopyable
 {
  public:
@@ -86,7 +87,7 @@ class ChatServer : noncopyable
   TcpServer server_;
   LengthHeaderCodec codec_;
   MutexLock mutex_;
-  ConnectionListPtr connections_ GUARDED_BY(mutex_);
+  ConnectionListPtr connections_ GUARDED_BY(mutex_);//集合的智能指针类型
 };
 
 int main(int argc, char* argv[])

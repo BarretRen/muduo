@@ -48,8 +48,8 @@ void onConnection(const TcpConnectionPtr& conn)
     LOG_INFO << "FileServer - Sending file " << g_file
              << " to " << conn->peerAddress().toIpPort();
     conn->setHighWaterMarkCallback(onHighWaterMark, 64*1024);
-    string fileContent = readFile(g_file);
-    conn->send(fileContent);
+    string fileContent = readFile(g_file);//将整个文件读到一个string对象中
+    conn->send(fileContent);//发送文件全部内容
     conn->shutdown();
     LOG_INFO << "FileServer - done";
   }

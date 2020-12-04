@@ -13,7 +13,7 @@ void onHighWaterMark(const TcpConnectionPtr& conn, size_t len)
   LOG_INFO << "HighWaterMark " << len;
 }
 
-const int kBufSize = 64*1024;
+const int kBufSize = 64*1024;//默认buffer大小为64K，用于保存文件内容的一部分
 const char* g_file = NULL;
 
 void onConnection(const TcpConnectionPtr& conn)
@@ -27,13 +27,13 @@ void onConnection(const TcpConnectionPtr& conn)
              << " to " << conn->peerAddress().toIpPort();
     conn->setHighWaterMarkCallback(onHighWaterMark, kBufSize+1);
 
-    FILE* fp = ::fopen(g_file, "rb");
+    FILE* fp = ::fopen(g_file, "rb");//每个新连接都会打开一个新的文件描述符，不用考虑当前的偏移量
     if (fp)
     {
       conn->setContext(fp);
       char buf[kBufSize];
-      size_t nread = ::fread(buf, 1, sizeof buf, fp);
-      conn->send(buf, static_cast<int>(nread));
+      size_t nread = ::fread(buf, 1, sizeof buf, fp);//只读取64K大小的内容
+      conn->send(buf, static_cast<int>(nread));//发送64K到客户端
     }
     else
     {
@@ -58,13 +58,13 @@ void onWriteComplete(const TcpConnectionPtr& conn)
 {
   FILE* fp = boost::any_cast<FILE*>(conn->getContext());
   char buf[kBufSize];
-  size_t nread = ::fread(buf, 1, sizeof buf, fp);
+  size_t nread = ::fread(buf, 1, sizeof buf, fp);//在发送完毕的回调函数中，继续读取64K内容，发送
   if (nread > 0)
   {
     conn->send(buf, static_cast<int>(nread));
   }
   else
-  {
+  {//读不到内容，关闭文件和网络连接
     ::fclose(fp);
     fp = NULL;
     conn->setContext(fp);

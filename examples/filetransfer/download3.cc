@@ -15,7 +15,7 @@ void onHighWaterMark(const TcpConnectionPtr& conn, size_t len)
 
 const int kBufSize = 64*1024;
 const char* g_file = NULL;
-typedef std::shared_ptr<FILE> FilePtr;
+typedef std::shared_ptr<FILE> FilePtr;//使用智能指针保存文件描述符，不用调用fclose
 
 void onConnection(const TcpConnectionPtr& conn)
 {
@@ -31,10 +31,10 @@ void onConnection(const TcpConnectionPtr& conn)
     FILE* fp = ::fopen(g_file, "rb");
     if (fp)
     {
-      FilePtr ctx(fp, ::fclose);
+      FilePtr ctx(fp, ::fclose);//将描述符交给智能指针管理，指定deleter
       conn->setContext(ctx);
       char buf[kBufSize];
-      size_t nread = ::fread(buf, 1, sizeof buf, fp);
+      size_t nread = ::fread(buf, 1, sizeof buf, fp);//依旧读取64K的数据发送
       conn->send(buf, static_cast<int>(nread));
     }
     else
@@ -43,6 +43,7 @@ void onConnection(const TcpConnectionPtr& conn)
       LOG_INFO << "FileServer - no such file";
     }
   }
+  //后面不需要处理文件关闭了
 }
 
 void onWriteComplete(const TcpConnectionPtr& conn)
@@ -55,7 +56,7 @@ void onWriteComplete(const TcpConnectionPtr& conn)
     conn->send(buf, static_cast<int>(nread));
   }
   else
-  {
+  {//文件读完，只需要关闭连接，描述符自动关闭
     conn->shutdown();
     LOG_INFO << "FileServer - done";
   }

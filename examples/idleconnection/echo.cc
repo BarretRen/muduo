@@ -20,8 +20,8 @@ EchoServer::EchoServer(EventLoop* loop,
       std::bind(&EchoServer::onConnection, this, _1));
   server_.setMessageCallback(
       std::bind(&EchoServer::onMessage, this, _1, _2, _3));
-  loop->runEvery(1.0, std::bind(&EchoServer::onTimer, this));
-  connectionBuckets_.resize(idleSeconds);
+  loop->runEvery(1.0, std::bind(&EchoServer::onTimer, this));//注册定时任务，每秒调用一次onTimer函数
+  connectionBuckets_.resize(idleSeconds);//指定时间轮大小
   dumpConnectionBuckets();
 }
 
@@ -38,6 +38,7 @@ void EchoServer::onConnection(const TcpConnectionPtr& conn)
 
   if (conn->connected())
   {
+    //新连接建立，创建一个Entry对象，添加到最后一个格子里
     EntryPtr entry(new Entry(conn));
     connectionBuckets_.back().insert(entry);
     dumpConnectionBuckets();
@@ -66,6 +67,9 @@ void EchoServer::onMessage(const TcpConnectionPtr& conn,
   EntryPtr entry(weakEntry.lock());
   if (entry)
   {
+    //如果收到数据，重新把Entry对象插入到时间轮最后
+    //这样时间轮里可能有多个Entry对象的智能指针，但是只有当最后面的对象析构时，才会真正释放
+    //因为是智能指针，这巧妙的利用了引用计数，不用移动Entry对象
     connectionBuckets_.back().insert(entry);
     dumpConnectionBuckets();
   }
@@ -73,6 +77,7 @@ void EchoServer::onMessage(const TcpConnectionPtr& conn,
 
 void EchoServer::onTimer()
 {
+  //添加一个新格子，由于circular_buffer规定了大小，所以头部的格子和智能指针会被自动析构
   connectionBuckets_.push_back(Bucket());
   dumpConnectionBuckets();
 }

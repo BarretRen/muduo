@@ -7,7 +7,7 @@
 
 using namespace muduo;
 using namespace muduo::net;
-
+//消息格式为：两个int64，index 0保存client时间，index 1保存server时间
 const size_t frameLen = 2*sizeof(int64_t);
 
 void serverConnectionCallback(const TcpConnectionPtr& conn)
@@ -17,6 +17,8 @@ void serverConnectionCallback(const TcpConnectionPtr& conn)
         << (conn->connected() ? "UP" : "DOWN");
   if (conn->connected())
   {
+    //广域网中App记录的发包时间与内核真正发出数据包的时间之差不再是一个可以忽略的小间隔
+    //所以需要设置弄Delay
     conn->setTcpNoDelay(true);
   }
   else
@@ -29,11 +31,11 @@ void serverMessageCallback(const TcpConnectionPtr& conn,
                            muduo::Timestamp receiveTime)
 {
   int64_t message[2];
-  while (buffer->readableBytes() >= frameLen)
+  while (buffer->readableBytes() >= frameLen)//收到的数据达到指定长度
   {
     memcpy(message, buffer->peek(), frameLen);
     buffer->retrieve(frameLen);
-    message[1] = receiveTime.microSecondsSinceEpoch();
+    message[1] = receiveTime.microSecondsSinceEpoch();//填写server端当前时间
     conn->send(message, sizeof message);
   }
 }
@@ -75,9 +77,9 @@ void clientMessageCallback(const TcpConnectionPtr&,
   {
     memcpy(message, buffer->peek(), frameLen);
     buffer->retrieve(frameLen);
-    int64_t send = message[0];
-    int64_t their = message[1];
-    int64_t back = receiveTime.microSecondsSinceEpoch();
+    int64_t send = message[0];//取出本端之前的发送时间
+    int64_t their = message[1];//取出server端收到的时间
+    int64_t back = receiveTime.microSecondsSinceEpoch();//获取当前client时间
     int64_t mine = (back+send)/2;
     LOG_INFO << "round trip " << back - send
              << " clock error " << their - mine;
@@ -102,7 +104,7 @@ void runClient(const char* ip, uint16_t port)
   client.setConnectionCallback(clientConnectionCallback);
   client.setMessageCallback(clientMessageCallback);
   client.connect();
-  loop.runEvery(0.2, sendMyTime);
+  loop.runEvery(0.2, sendMyTime);//每0.2秒发送一次
   loop.loop();
 }
 

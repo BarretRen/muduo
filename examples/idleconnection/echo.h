@@ -31,6 +31,7 @@ class EchoServer
 
   typedef std::weak_ptr<muduo::net::TcpConnection> WeakTcpConnectionPtr;
 
+  //时间轮里保存Entry弱指针
   struct Entry : public muduo::copyable
   {
     explicit Entry(const WeakTcpConnectionPtr& weakConn)
@@ -40,6 +41,7 @@ class EchoServer
 
     ~Entry()
     {
+      //判断指针是否存在，存在则关闭连接
       muduo::net::TcpConnectionPtr conn = weakConn_.lock();
       if (conn)
       {
@@ -47,12 +49,12 @@ class EchoServer
       }
     }
 
-    WeakTcpConnectionPtr weakConn_;
+    WeakTcpConnectionPtr weakConn_;//保存弱指针对象
   };
   typedef std::shared_ptr<Entry> EntryPtr;
   typedef std::weak_ptr<Entry> WeakEntryPtr;
-  typedef std::unordered_set<EntryPtr> Bucket;
-  typedef boost::circular_buffer<Bucket> WeakConnectionList;
+  typedef std::unordered_set<EntryPtr> Bucket;//每个格子是一个set
+  typedef boost::circular_buffer<Bucket> WeakConnectionList;//模拟包含多个格子的时间轮
 
   muduo::net::TcpServer server_;
   WeakConnectionList connectionBuckets_;

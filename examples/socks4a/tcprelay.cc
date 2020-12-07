@@ -10,7 +10,7 @@ using namespace muduo::net;
 
 EventLoop* g_eventLoop;
 InetAddress* g_serverAddr;
-std::map<string, TunnelPtr> g_tunnels;
+std::map<string, TunnelPtr> g_tunnels;//一个server对应多个client，代理保存所有client
 
 void onServerConnection(const TcpConnectionPtr& conn)
 {
@@ -45,7 +45,7 @@ void onServerMessage(const TcpConnectionPtr& conn, Buffer* buf, Timestamp)
 
 void memstat()
 {
-  malloc_stats();
+  malloc_stats();//打印本进程的内存使用情况
 }
 
 int main(int argc, char* argv[])

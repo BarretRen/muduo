@@ -93,8 +93,8 @@ class Request : public std::enable_shared_from_this<Request>,
   void doneCallback();
 
   class Curl* owner_;
-  CURL* curl_;
-  std::shared_ptr<muduo::net::Channel> channel_;
+  CURL* curl_;//内嵌curl对象
+  std::shared_ptr<muduo::net::Channel> channel_;//内嵌Channel对象
   DataCallback dataCb_;
   DataCallback headerCb_;
   DoneCallback doneCb_;
@@ -132,7 +132,7 @@ class Curl : muduo::noncopyable
   static int socketCallback(CURL*, int, int, void*, void*);
   static int timerCallback(CURLM*, long, void*);
 
-  muduo::net::EventLoop* loop_;
+  muduo::net::EventLoop* loop_;//内嵌Event Loop对象
   CURLM* curlm_;
   int runningHandles_;
   int prevRunningHandles_;

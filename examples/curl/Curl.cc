@@ -18,6 +18,7 @@ Request::Request(Curl* owner, const char* url)
   : owner_(owner),
     curl_(CHECK_NOTNULL(curl_easy_init()))
 {
+  //设置curl的各项配置
   setopt(CURLOPT_URL, url);
   setopt(CURLOPT_WRITEFUNCTION, &Request::writeData);
   setopt(CURLOPT_WRITEDATA, this);

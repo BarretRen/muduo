@@ -39,7 +39,7 @@ class Channel : noncopyable
   Channel(EventLoop* loop, int fd);
   ~Channel();
 
-  void handleEvent(Timestamp receiveTime);
+  void handleEvent(Timestamp receiveTime);//由EventLoop::loop()调用
   void setReadCallback(ReadEventCallback cb)
   { readCallback_ = std::move(cb); }
   void setWriteCallback(EventCallback cb)

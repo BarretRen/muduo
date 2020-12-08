@@ -46,7 +46,7 @@ class EPollPoller : public Poller
 
   typedef std::vector<struct epoll_event> EventList;
 
-  int epollfd_;
+  int epollfd_;//保存epoll wait list
   EventList events_;
 };
 

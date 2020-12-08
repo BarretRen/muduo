@@ -85,7 +85,7 @@ void Channel::handleEventWithGuard(Timestamp receiveTime)
   eventHandling_ = true;
   LOG_TRACE << reventsToString();
   if ((revents_ & POLLHUP) && !(revents_ & POLLIN))
-  {
+  {//收到挂起事件
     if (logHup_)
     {
       LOG_WARN << "fd = " << fd_ << " Channel::handle_event() POLLHUP";
@@ -94,20 +94,20 @@ void Channel::handleEventWithGuard(Timestamp receiveTime)
   }
 
   if (revents_ & POLLNVAL)
-  {
+  {//描述符没有打开
     LOG_WARN << "fd = " << fd_ << " Channel::handle_event() POLLNVAL";
   }
 
   if (revents_ & (POLLERR | POLLNVAL))
-  {
+  {//错误或描述符没有打开，调用错误处理
     if (errorCallback_) errorCallback_();
   }
   if (revents_ & (POLLIN | POLLPRI | POLLRDHUP))
-  {
+  {//可读事件
     if (readCallback_) readCallback_(receiveTime);
   }
   if (revents_ & POLLOUT)
-  {
+  {//数据可写事件
     if (writeCallback_) writeCallback_();
   }
   eventHandling_ = false;

@@ -26,7 +26,7 @@ using namespace muduo::net;
 
 namespace
 {
-__thread EventLoop* t_loopInThisThread = 0;
+__thread EventLoop* t_loopInThisThread = 0;//全局变量，记录本线程的EventLoop对象
 
 const int kPollTimeMs = 10000;
 
@@ -58,7 +58,7 @@ IgnoreSigPipe initObj;
 
 EventLoop* EventLoop::getEventLoopOfCurrentThread()
 {
-  return t_loopInThisThread;
+  return t_loopInThisThread;//返回当前线程的EventLoop对象
 }
 
 EventLoop::EventLoop()
@@ -67,7 +67,7 @@ EventLoop::EventLoop()
     eventHandling_(false),
     callingPendingFunctors_(false),
     iteration_(0),
-    threadId_(CurrentThread::tid()),
+    threadId_(CurrentThread::tid()),//保存当前对象所属的线程
     poller_(Poller::newDefaultPoller(this)),
     timerQueue_(new TimerQueue(this)),
     wakeupFd_(createEventfd()),
@@ -75,6 +75,7 @@ EventLoop::EventLoop()
     currentActiveChannel_(NULL)
 {
   LOG_DEBUG << "EventLoop created " << this << " in thread " << threadId_;
+  //检查当前线程释放已存在EventLoop对象
   if (t_loopInThisThread)
   {
     LOG_FATAL << "Another EventLoop " << t_loopInThisThread
@@ -87,6 +88,7 @@ EventLoop::EventLoop()
   wakeupChannel_->setReadCallback(
       std::bind(&EventLoop::handleRead, this));
   // we are always reading the wakeupfd
+  //调用channel的update函数，间接调用EventLoop的updateChannel，将文件描述符添加到poller的wait list
   wakeupChannel_->enableReading();
 }
 
@@ -95,23 +97,23 @@ EventLoop::~EventLoop()
   LOG_DEBUG << "EventLoop " << this << " of thread " << threadId_
             << " destructs in thread " << CurrentThread::tid();
   wakeupChannel_->disableAll();
-  wakeupChannel_->remove();
-  ::close(wakeupFd_);
-  t_loopInThisThread = NULL;
+  wakeupChannel_->remove();//析构时删除Channel
+  ::close(wakeupFd_);//关闭描述符
+  t_loopInThisThread = NULL;//设置所属线程为空
 }
-
+//EventLoop的主体代码
 void EventLoop::loop()
 {
-  assert(!looping_);
-  assertInLoopThread();
+  assert(!looping_);//判断是否正在运行
+  assertInLoopThread();//判断是否属于当前线程
   looping_ = true;
   quit_ = false;  // FIXME: what if someone calls quit() before loop() ?
   LOG_TRACE << "EventLoop " << this << " start looping";
 
-  while (!quit_)
+  while (!quit_)//主要功能由Poller和Channel负责
   {
     activeChannels_.clear();
-    pollReturnTime_ = poller_->poll(kPollTimeMs, &activeChannels_);
+    pollReturnTime_ = poller_->poll(kPollTimeMs, &activeChannels_);//IO复用监听IO事件
     ++iteration_;
     if (Logger::logLevel() <= Logger::TRACE)
     {
@@ -120,7 +122,7 @@ void EventLoop::loop()
     // TODO sort channel by priority
     eventHandling_ = true;
     for (Channel* channel : activeChannels_)
-    {
+    {//遍历每个channel，处理IO监听到的事件
       currentActiveChannel_ = channel;
       currentActiveChannel_->handleEvent(pollReturnTime_);
     }
@@ -202,7 +204,7 @@ void EventLoop::updateChannel(Channel* channel)
 {
   assert(channel->ownerLoop() == this);
   assertInLoopThread();
-  poller_->updateChannel(channel);
+  poller_->updateChannel(channel);//调用poller的函数，添加channel到epoll wait list中
 }
 
 void EventLoop::removeChannel(Channel* channel)

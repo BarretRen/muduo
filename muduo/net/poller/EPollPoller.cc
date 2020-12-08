@@ -62,7 +62,7 @@ Timestamp EPollPoller::poll(int timeoutMs, ChannelList* activeChannels)
   int savedErrno = errno;
   Timestamp now(Timestamp::now());
   if (numEvents > 0)
-  {
+  {//如果收到事件，填充中activeChannels中
     LOG_TRACE << numEvents << " events happened";
     fillActiveChannels(numEvents, activeChannels);
     if (implicit_cast<size_t>(numEvents) == events_.size())
@@ -94,6 +94,7 @@ void EPollPoller::fillActiveChannels(int numEvents,
   {
     Channel* channel = static_cast<Channel*>(events_[i].data.ptr);
 #ifndef NDEBUG
+    //找出有活动事件的fd，把它对应的Channel填入activeChannels
     int fd = channel->fd();
     ChannelMap::const_iterator it = channels_.find(fd);
     assert(it != channels_.end());
@@ -103,7 +104,7 @@ void EPollPoller::fillActiveChannels(int numEvents,
     activeChannels->push_back(channel);
   }
 }
-
+//后面四个函数用于增删epoll wait list，供EventLoop调用
 void EPollPoller::updateChannel(Channel* channel)
 {
   Poller::assertInLoopThread();

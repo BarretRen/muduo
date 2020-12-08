@@ -90,8 +90,8 @@ class Channel : noncopyable
   static const int kReadEvent;
   static const int kWriteEvent;
 
-  EventLoop* loop_;
-  const int  fd_;
+  EventLoop* loop_; //一个channel只属于一个EventLoop
+  const int  fd_;//一个channel只负责一个描述符，但不拥有所有权
   int        events_;
   int        revents_; // it's the received event types of epoll or poll
   int        index_; // used by Poller.

@@ -50,6 +50,7 @@ TcpConnection::TcpConnection(EventLoop* loop,
     peerAddr_(peerAddr),
     highWaterMark_(64*1024*1024)
 {
+  //channel绑定可读可写等事件，供channel的handleEvent函数调用
   channel_->setReadCallback(
       std::bind(&TcpConnection::handleRead, this, _1));
   channel_->setWriteCallback(
@@ -149,13 +150,13 @@ void TcpConnection::sendInLoop(const void* data, size_t len)
   }
   // if no thing in output queue, try writing directly
   if (!channel_->isWriting() && outputBuffer_.readableBytes() == 0)
-  {
+  {//output中没有缓存数据，则说明socket写处于空闲，可以直接写入socket
     nwrote = sockets::write(channel_->fd(), data, len);
     if (nwrote >= 0)
     {
       remaining = len - nwrote;
       if (remaining == 0 && writeCompleteCallback_)
-      {
+      {//调用写完成回调函数
         loop_->queueInLoop(std::bind(writeCompleteCallback_, shared_from_this()));
       }
     }
@@ -183,6 +184,7 @@ void TcpConnection::sendInLoop(const void* data, size_t len)
     {
       loop_->queueInLoop(std::bind(highWaterMarkCallback_, shared_from_this(), oldLen + remaining));
     }
+    //将新的数据追加到outputBuffer之中，等待写入socket
     outputBuffer_.append(static_cast<const char*>(data)+nwrote, remaining);
     if (!channel_->isWriting())
     {
@@ -348,9 +350,10 @@ void TcpConnection::handleRead(Timestamp receiveTime)
 {
   loop_->assertInLoopThread();
   int savedErrno = 0;
+  //处理socket可读事件，调用Buffer类的readFd函数
   ssize_t n = inputBuffer_.readFd(channel_->fd(), &savedErrno);
   if (n > 0)
-  {
+  {//读到了数据，调用App层的回调函数，处理读到的数据
     messageCallback_(shared_from_this(), &inputBuffer_, receiveTime);
   }
   else if (n == 0)
@@ -371,7 +374,7 @@ void TcpConnection::handleWrite()
   if (channel_->isWriting())
   {
     ssize_t n = sockets::write(channel_->fd(),
-                               outputBuffer_.peek(),
+                               outputBuffer_.peek(),//将output buffer数据写入socket
                                outputBuffer_.readableBytes());
     if (n > 0)
     {

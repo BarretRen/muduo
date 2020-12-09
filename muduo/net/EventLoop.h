@@ -145,8 +145,8 @@ class EventLoop : noncopyable
   const pid_t threadId_;
   Timestamp pollReturnTime_;
   std::unique_ptr<Poller> poller_;//IO复用的基础封装类
-  std::unique_ptr<TimerQueue> timerQueue_;
-  int wakeupFd_;
+  std::unique_ptr<TimerQueue> timerQueue_;//timer处理队列
+  int wakeupFd_;//用于标识需要在EventLoop线程执行的用户回调
   // unlike in TimerQueue, which is an internal class,
   // we don't expose Channel to client.
   std::unique_ptr<Channel> wakeupChannel_;

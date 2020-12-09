@@ -410,7 +410,7 @@ class Buffer : public muduo::copyable
 
  private:
   std::vector<char> buffer_;
-  size_t readerIndex_;
+  size_t readerIndex_; //整数下标，因为vector可能需要重新申请内存扩展长度，不能用指针
   size_t writerIndex_;
 
   static const char kCRLF[];

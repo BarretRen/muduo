@@ -21,7 +21,7 @@ class EchoServer
                  muduo::Timestamp time);
 
   muduo::net::TcpServer server_;
-  int numConnected_; // should be atomic_int
+  int numConnected_; // should be atomic_int，原子变量，避免多线程同时操作
   const int kMaxConnections_;
 };
 

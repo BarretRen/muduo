@@ -10,7 +10,7 @@ EchoServer::EchoServer(EventLoop* loop,
                        int maxConnections)
   : server_(loop, listenAddr, "EchoServer"),
     numConnected_(0),
-    kMaxConnections_(maxConnections)
+    kMaxConnections_(maxConnections)//指定并发连接数的最大限制
 {
   server_.setConnectionCallback(
       std::bind(&EchoServer::onConnection, this, _1));
@@ -32,8 +32,8 @@ void EchoServer::onConnection(const TcpConnectionPtr& conn)
   if (conn->connected())
   {
     ++numConnected_;
-    if (numConnected_ > kMaxConnections_)
-    {
+    if (numConnected_ > kMaxConnections_)//判断是否超过最大的并发连接数限制，
+    {//超过，立刻关闭新连接
       conn->shutdown();
       conn->forceCloseWithDelay(3.0);  // > round trip of the whole Internet.
     }

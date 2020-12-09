@@ -71,7 +71,7 @@ EventLoop::EventLoop()
     poller_(Poller::newDefaultPoller(this)),
     timerQueue_(new TimerQueue(this)),
     wakeupFd_(createEventfd()),
-    wakeupChannel_(new Channel(this, wakeupFd_)),
+    wakeupChannel_(new Channel(this, wakeupFd_)),//用于监听本线程的事件
     currentActiveChannel_(NULL)
 {
   LOG_DEBUG << "EventLoop created " << this << " in thread " << threadId_;
@@ -128,7 +128,7 @@ void EventLoop::loop()
     }
     currentActiveChannel_ = NULL;
     eventHandling_ = false;
-    doPendingFunctors();
+    doPendingFunctors();//处理完socket事件，下次循环前处理一下需要在本线程执行的本线程累积的回调任务
   }
 
   LOG_TRACE << "EventLoop " << this << " stop looping";
@@ -151,7 +151,7 @@ void EventLoop::runInLoop(Functor cb)
 {
   if (isInLoopThread())
   {
-    cb();
+    cb();//在IO线程执行某个用户任务的回调函数
   }
   else
   {
@@ -163,12 +163,12 @@ void EventLoop::queueInLoop(Functor cb)
 {
   {
   MutexLockGuard lock(mutex_);
-  pendingFunctors_.push_back(std::move(cb));
+  pendingFunctors_.push_back(std::move(cb));//加入到回调等待列表
   }
 
   if (!isInLoopThread() || callingPendingFunctors_)
   {
-    wakeup();
+    wakeup();//唤醒本线程，处理一下需要在本线程执行的回调函数
   }
 }
 
@@ -180,7 +180,7 @@ size_t EventLoop::queueSize() const
 
 TimerId EventLoop::runAt(Timestamp time, TimerCallback cb)
 {
-  return timerQueue_->addTimer(std::move(cb), time, 0.0);
+  return timerQueue_->addTimer(std::move(cb), time, 0.0);//调用TimerQueue添加新的timer
 }
 
 TimerId EventLoop::runAfter(double delay, TimerCallback cb)
@@ -236,6 +236,8 @@ void EventLoop::abortNotInLoopThread()
 void EventLoop::wakeup()
 {
   uint64_t one = 1;
+  //创造一个wakeupFd_可读事件，这样loop里的poll可以立刻检测到事件返回，不会一直等待
+  //这样回调等待列表中的函数才有机会执行
   ssize_t n = sockets::write(wakeupFd_, &one, sizeof one);
   if (n != sizeof one)
   {
@@ -265,7 +267,7 @@ void EventLoop::doPendingFunctors()
 
   for (const Functor& functor : functors)
   {
-    functor();
+    functor();//依次执行等待列表中每个回调函数
   }
   callingPendingFunctors_ = false;
 }

@@ -45,9 +45,9 @@ class TimerQueue : noncopyable
   /// Must be thread safe. Usually be called from other threads.
   TimerId addTimer(TimerCallback cb,
                    Timestamp when,
-                   double interval);
+                   double interval);//添加一个timer
 
-  void cancel(TimerId timerId);
+  void cancel(TimerId timerId);//取消timer
 
  private:
 
@@ -69,11 +69,11 @@ class TimerQueue : noncopyable
 
   bool insert(Timer* timer);
 
-  EventLoop* loop_;
-  const int timerfd_;
-  Channel timerfdChannel_;
+  EventLoop* loop_;//指向本对象属于的EventLoop
+  const int timerfd_;//生成的timer描述符
+  Channel timerfdChannel_;//timer描述符对应的Channel对象
   // Timer list sorted by expiration
-  TimerList timers_;
+  TimerList timers_;//timer列表集合
 
   // for cancel()
   ActiveTimerSet activeTimers_;

@@ -48,9 +48,9 @@ class Timer : noncopyable
   static int64_t numCreated() { return s_numCreated_.get(); }
 
  private:
-  const TimerCallback callback_;
-  Timestamp expiration_;
-  const double interval_;
+  const TimerCallback callback_;//超时回调函数
+  Timestamp expiration_;//timer终结的时间，当前时间+interval_
+  const double interval_;//超时时长
   const bool repeat_;
   const int64_t sequence_;
 

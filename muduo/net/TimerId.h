@@ -43,8 +43,8 @@ class TimerId : public muduo::copyable
   friend class TimerQueue;
 
  private:
-  Timer* timer_;
-  int64_t sequence_;
+  Timer* timer_;//保存timer指针
+  int64_t sequence_;//保存timer对象对应的id，其实就是一个映射
 };
 
 }  // namespace net

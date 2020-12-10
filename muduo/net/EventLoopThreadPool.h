@@ -57,10 +57,10 @@ class EventLoopThreadPool : noncopyable
   EventLoop* baseLoop_;
   string name_;
   bool started_;
-  int numThreads_;
+  int numThreads_;//线程个数
   int next_;
-  std::vector<std::unique_ptr<EventLoopThread>> threads_;
-  std::vector<EventLoop*> loops_;
+  std::vector<std::unique_ptr<EventLoopThread>> threads_;//线程池
+  std::vector<EventLoop*> loops_;//线程要执行的EventLoop对象
 };
 
 }  // namespace net

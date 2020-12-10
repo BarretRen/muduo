@@ -41,9 +41,9 @@ void EventLoopThreadPool::start(const ThreadInitCallback& cb)
   {
     char buf[name_.size() + 32];
     snprintf(buf, sizeof buf, "%s%d", name_.c_str(), i);
-    EventLoopThread* t = new EventLoopThread(cb, buf);
+    EventLoopThread* t = new EventLoopThread(cb, buf);//创建新线程
     threads_.push_back(std::unique_ptr<EventLoopThread>(t));
-    loops_.push_back(t->startLoop());
+    loops_.push_back(t->startLoop());//在新线程执行loop循环，并返回loop的指针保存起来
   }
   if (numThreads_ == 0 && cb)
   {
@@ -67,7 +67,7 @@ EventLoop* EventLoopThreadPool::getNextLoop()
       next_ = 0;
     }
   }
-  return loop;
+  return loop;//单线程返回baseLoop_，即主线程的loop，多线程则返回子线程中执行的loop
 }
 
 EventLoop* EventLoopThreadPool::getLoopForHash(size_t hashCode)

@@ -103,7 +103,7 @@ class TcpServer : noncopyable
   const string ipPort_;
   const string name_;
   std::unique_ptr<Acceptor> acceptor_; // avoid revealing Acceptor
-  std::shared_ptr<EventLoopThreadPool> threadPool_;
+  std::shared_ptr<EventLoopThreadPool> threadPool_;//使用EventLoop线程池，默认0
   ConnectionCallback connectionCallback_;//回调函数，用于建立新连接后将TcpConnection传递给App层
   MessageCallback messageCallback_;
   WriteCompleteCallback writeCompleteCallback_;

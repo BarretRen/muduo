@@ -50,9 +50,9 @@ class Acceptor : noncopyable
   void handleRead();
 
   EventLoop* loop_;
-  Socket acceptSocket_;
-  Channel acceptChannel_;
-  NewConnectionCallback newConnectionCallback_;
+  Socket acceptSocket_;//用于监听client连接的socket
+  Channel acceptChannel_;//socket对应的channel对象
+  NewConnectionCallback newConnectionCallback_;//新连接建立后的回调函数
   bool listening_;
   int idleFd_;
 };

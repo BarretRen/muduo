@@ -104,14 +104,14 @@ class TcpServer : noncopyable
   const string name_;
   std::unique_ptr<Acceptor> acceptor_; // avoid revealing Acceptor
   std::shared_ptr<EventLoopThreadPool> threadPool_;
-  ConnectionCallback connectionCallback_;
+  ConnectionCallback connectionCallback_;//回调函数，用于建立新连接后将TcpConnection传递给App层
   MessageCallback messageCallback_;
   WriteCompleteCallback writeCompleteCallback_;
   ThreadInitCallback threadInitCallback_;
   AtomicInt32 started_;
   // always in loop thread
   int nextConnId_;
-  ConnectionMap connections_;
+  ConnectionMap connections_;//保存建立的client连接
 };
 
 }  // namespace net

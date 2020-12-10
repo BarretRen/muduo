@@ -24,15 +24,15 @@ using namespace muduo::net;
 
 Acceptor::Acceptor(EventLoop* loop, const InetAddress& listenAddr, bool reuseport)
   : loop_(loop),
-    acceptSocket_(sockets::createNonblockingOrDie(listenAddr.family())),
-    acceptChannel_(loop, acceptSocket_.fd()),
+    acceptSocket_(sockets::createNonblockingOrDie(listenAddr.family())),//根据IP地址创建socket描述符
+    acceptChannel_(loop, acceptSocket_.fd()),//创建对应的channel对象
     listening_(false),
-    idleFd_(::open("/dev/null", O_RDONLY | O_CLOEXEC))
+    idleFd_(::open("/dev/null", O_RDONLY | O_CLOEXEC))//占位描述符，防止系统无描述符可用
 {
   assert(idleFd_ >= 0);
-  acceptSocket_.setReuseAddr(true);
+  acceptSocket_.setReuseAddr(true);//设置SO_REUSEADDR，可重入使用还未释放的IP和port
   acceptSocket_.setReusePort(reuseport);
-  acceptSocket_.bindAddress(listenAddr);
+  acceptSocket_.bindAddress(listenAddr);//bind socket IP
   acceptChannel_.setReadCallback(
       std::bind(&Acceptor::handleRead, this));
 }
@@ -49,10 +49,10 @@ void Acceptor::listen()
   loop_->assertInLoopThread();
   listening_ = true;
   acceptSocket_.listen();
-  acceptChannel_.enableReading();
+  acceptChannel_.enableReading();//添加socket描述符到epoll wait list中一起监听
 }
 
-void Acceptor::handleRead()
+void Acceptor::handleRead()//可读事件回调，说明有新client连接
 {
   loop_->assertInLoopThread();
   InetAddress peerAddr;
@@ -64,7 +64,7 @@ void Acceptor::handleRead()
     // LOG_TRACE << "Accepts of " << hostport;
     if (newConnectionCallback_)
     {
-      newConnectionCallback_(connfd, peerAddr);
+      newConnectionCallback_(connfd, peerAddr);//调用新连接回调，传递connection id
     }
     else
     {
@@ -79,10 +79,10 @@ void Acceptor::handleRead()
     // By Marc Lehmann, author of libev.
     if (errno == EMFILE)
     {
-      ::close(idleFd_);
+      ::close(idleFd_);//accept失败，说明系统没有描述符可用，需要先释放占位用的描述符
       idleFd_ = ::accept(acceptSocket_.fd(), NULL, NULL);
-      ::close(idleFd_);
-      idleFd_ = ::open("/dev/null", O_RDONLY | O_CLOEXEC);
+      ::close(idleFd_);//占位描述符现在标识的时connection id，关闭它
+      idleFd_ = ::open("/dev/null", O_RDONLY | O_CLOEXEC);//重新占位
     }
   }
 }

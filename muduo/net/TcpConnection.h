@@ -136,17 +136,17 @@ class TcpConnection : noncopyable,
   StateE state_;  // FIXME: use atomic variable
   bool reading_;
   // we don't expose those classes to client.
-  std::unique_ptr<Socket> socket_;
-  std::unique_ptr<Channel> channel_;
+  std::unique_ptr<Socket> socket_;//一个TcpConnection标识一个socket，因此用唯一指针
+  std::unique_ptr<Channel> channel_;//通过channel类收发数据和接收IO事件
   const InetAddress localAddr_;
   const InetAddress peerAddr_;
   ConnectionCallback connectionCallback_;
-  MessageCallback messageCallback_;
+  MessageCallback messageCallback_;//有数据可读时的回调，让App层处理数据
   WriteCompleteCallback writeCompleteCallback_;
   HighWaterMarkCallback highWaterMarkCallback_;
   CloseCallback closeCallback_;
   size_t highWaterMark_;
-  Buffer inputBuffer_;
+  Buffer inputBuffer_;//收发数据的buffer
   Buffer outputBuffer_; // FIXME: use list<Buffer> as output buffer.
   boost::any context_;
   // FIXME: creationTime_, lastReceiveTime_

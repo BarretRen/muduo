@@ -44,8 +44,8 @@ TcpConnection::TcpConnection(EventLoop* loop,
     name_(nameArg),
     state_(kConnecting),
     reading_(true),
-    socket_(new Socket(sockfd)),
-    channel_(new Channel(loop, sockfd)),
+    socket_(new Socket(sockfd)),//根据socket描述符创建socket对象
+    channel_(new Channel(loop, sockfd)),//创建channel标识socket描述符
     localAddr_(localAddr),
     peerAddr_(peerAddr),
     highWaterMark_(64*1024*1024)
@@ -84,7 +84,7 @@ string TcpConnection::getTcpInfoString() const
   socket_->getTcpInfoString(buf, sizeof buf);
   return buf;
 }
-
+//供App层使用发送数据到socket的接口
 void TcpConnection::send(const void* data, int len)
 {
   send(StringPiece(static_cast<const char*>(data), len));
@@ -193,12 +193,12 @@ void TcpConnection::sendInLoop(const void* data, size_t len)
   }
 }
 
-void TcpConnection::shutdown()
+void TcpConnection::shutdown()//被动关闭连接的入口
 {
   // FIXME: use compare and swap
   if (state_ == kConnected)
   {
-    setState(kDisconnecting);
+    setState(kDisconnecting);//设置状态为正在关闭
     // FIXME: shared_from_this()?
     loop_->runInLoop(std::bind(&TcpConnection::shutdownInLoop, this));
   }
@@ -208,7 +208,7 @@ void TcpConnection::shutdownInLoop()
 {
   loop_->assertInLoopThread();
   if (!channel_->isWriting())
-  {
+  {//如果当前没有发送数据，关闭写通道。如果有数据，等下一次loop循环再进入此函数
     // we are not writing
     socket_->shutdownWrite();
   }
@@ -238,7 +238,7 @@ void TcpConnection::shutdownInLoop()
 //                        &TcpConnection::forceCloseInLoop));
 // }
 
-void TcpConnection::forceClose()
+void TcpConnection::forceClose()//主动关闭连接的接口
 {
   // FIXME: use compare and swap
   if (state_ == kConnected || state_ == kDisconnecting)
@@ -266,7 +266,7 @@ void TcpConnection::forceCloseInLoop()
   if (state_ == kConnected || state_ == kDisconnecting)
   {
     // as if we received 0 byte in handleRead();
-    handleClose();
+    handleClose();//调用内部函数，read失败也会调用这个函数
   }
 }
 
@@ -302,7 +302,7 @@ void TcpConnection::startReadInLoop()
   loop_->assertInLoopThread();
   if (!reading_ || !channel_->isReading())
   {
-    channel_->enableReading();
+    channel_->enableReading();//设置epoll监听可读事件
     reading_ = true;
   }
 }
@@ -317,7 +317,7 @@ void TcpConnection::stopReadInLoop()
   loop_->assertInLoopThread();
   if (reading_ || channel_->isReading())
   {
-    channel_->disableReading();
+    channel_->disableReading();//设置epoll取消监听可读事件
     reading_ = false;
   }
 }
@@ -328,9 +328,9 @@ void TcpConnection::connectEstablished()
   assert(state_ == kConnecting);
   setState(kConnected);
   channel_->tie(shared_from_this());
-  channel_->enableReading();
+  channel_->enableReading();//连接刚建立，设置epoll开始监听可读事件，等待数据
 
-  connectionCallback_(shared_from_this());
+  connectionCallback_(shared_from_this());//通过回调，将本TcpConnection传递给App层
 }
 
 void TcpConnection::connectDestroyed()
@@ -339,11 +339,11 @@ void TcpConnection::connectDestroyed()
   if (state_ == kConnected)
   {
     setState(kDisconnected);
-    channel_->disableAll();
+    channel_->disableAll();//连接销毁，取消所有监听IO事件
 
-    connectionCallback_(shared_from_this());
+    connectionCallback_(shared_from_this());//调用回调，通知App层连接断开
   }
-  channel_->remove();
+  channel_->remove();//删除channel， 从poller中删除channel引用
 }
 
 void TcpConnection::handleRead(Timestamp receiveTime)
@@ -367,7 +367,7 @@ void TcpConnection::handleRead(Timestamp receiveTime)
     handleError();
   }
 }
-
+//App层调用send函数，写入buffer，此函数是epoll监听奥可写事件后调用，将buffer内容写入socket
 void TcpConnection::handleWrite()
 {
   loop_->assertInLoopThread();
@@ -384,7 +384,7 @@ void TcpConnection::handleWrite()
         channel_->disableWriting();
         if (writeCompleteCallback_)
         {
-          loop_->queueInLoop(std::bind(writeCompleteCallback_, shared_from_this()));
+          loop_->queueInLoop(std::bind(writeCompleteCallback_, shared_from_this()));//数据写完，回调通知App层
         }
         if (state_ == kDisconnecting)
         {
@@ -414,12 +414,13 @@ void TcpConnection::handleClose()
   LOG_TRACE << "fd = " << channel_->fd() << " state = " << stateToString();
   assert(state_ == kConnected || state_ == kDisconnecting);
   // we don't close fd, leave it to dtor, so we can find leaks easily.
-  setState(kDisconnected);
-  channel_->disableAll();
+  setState(kDisconnected);//设置状态为关闭
+  channel_->disableAll();//取消所有IO事件的监听
 
-  TcpConnectionPtr guardThis(shared_from_this());
-  connectionCallback_(guardThis);
+  TcpConnectionPtr guardThis(shared_from_this());//将本对象转换为智能指针
+  connectionCallback_(guardThis);//回调，让TcpServer和TcpClient释放connection的智能指针
   // must be the last line
+  //回调TcpServer::removeConnection，最后调用TcpConnection::connectDestroyed
   closeCallback_(guardThis);
 }
 

@@ -63,9 +63,9 @@ class Connector : noncopyable,
   InetAddress serverAddr_;
   bool connect_; // atomic
   States state_;  // FIXME: use atomic variable
-  std::unique_ptr<Channel> channel_;
-  NewConnectionCallback newConnectionCallback_;
-  int retryDelayMs_;
+  std::unique_ptr<Channel> channel_;//标识客户端连接的描述符
+  NewConnectionCallback newConnectionCallback_;//建立连接的回调，有TcpClient指定
+  int retryDelayMs_;//连接失败的重试时间
 };
 
 }  // namespace net

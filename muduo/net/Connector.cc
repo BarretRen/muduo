@@ -26,7 +26,7 @@ Connector::Connector(EventLoop* loop, const InetAddress& serverAddr)
     serverAddr_(serverAddr),
     connect_(false),
     state_(kDisconnected),
-    retryDelayMs_(kInitRetryDelayMs)
+    retryDelayMs_(kInitRetryDelayMs)//默认的重试间隔0.5s
 {
   LOG_DEBUG << "ctor[" << this << "]";
 }
@@ -49,7 +49,7 @@ void Connector::startInLoop()
   assert(state_ == kDisconnected);
   if (connect_)
   {
-    connect();
+    connect();//在IO线程调用connect，尝试连接指定的server
   }
   else
   {
@@ -70,13 +70,13 @@ void Connector::stopInLoop()
   if (state_ == kConnecting)
   {
     setState(kDisconnected);
-    int sockfd = removeAndResetChannel();
+    int sockfd = removeAndResetChannel();//删除channel，关闭socket
     retry(sockfd);
   }
 }
 
 void Connector::connect()
-{
+{//创建socket并连接
   int sockfd = sockets::createNonblockingOrDie(serverAddr_.family());
   int ret = sockets::connect(sockfd, serverAddr_.getSockAddr());
   int savedErrno = (ret == 0) ? 0 : errno;
@@ -86,7 +86,7 @@ void Connector::connect()
     case EINPROGRESS:
     case EINTR:
     case EISCONN:
-      connecting(sockfd);
+      connecting(sockfd);//正在连接
       break;
 
     case EAGAIN:
@@ -94,7 +94,7 @@ void Connector::connect()
     case EADDRNOTAVAIL:
     case ECONNREFUSED:
     case ENETUNREACH:
-      retry(sockfd);
+      retry(sockfd);//失败，需要重试
       break;
 
     case EACCES:
@@ -129,25 +129,25 @@ void Connector::connecting(int sockfd)
 {
   setState(kConnecting);
   assert(!channel_);
-  channel_.reset(new Channel(loop_, sockfd));
-  channel_->setWriteCallback(
+  channel_.reset(new Channel(loop_, sockfd));//根据socket描述符初始化channel
+  channel_->setWriteCallback(//绑定回调
       std::bind(&Connector::handleWrite, this)); // FIXME: unsafe
   channel_->setErrorCallback(
       std::bind(&Connector::handleError, this)); // FIXME: unsafe
 
   // channel_->tie(shared_from_this()); is not working,
   // as channel_ is not managed by shared_ptr
-  channel_->enableWriting();
+  channel_->enableWriting();//将可写事件添加到epoll wait list中
 }
 
 int Connector::removeAndResetChannel()
 {
-  channel_->disableAll();
-  channel_->remove();
+  channel_->disableAll();//取消所有IO事件监听
+  channel_->remove();//从poll中删除channel
   int sockfd = channel_->fd();
   // Can't reset channel_ here, because we are inside Channel::handleEvent
   loop_->queueInLoop(std::bind(&Connector::resetChannel, this)); // FIXME: unsafe
-  return sockfd;
+  return sockfd;//返回描述符，socket的关闭交给TcpClient，不在这里关闭
 }
 
 void Connector::resetChannel()
@@ -161,7 +161,9 @@ void Connector::handleWrite()
 
   if (state_ == kConnecting)
   {
+    //本类只负责建立连接，确定连接后返回描述符，内部channel没用了，reset之后用于建立下一连接
     int sockfd = removeAndResetChannel();
+    //有可写事件不表示连接建立，需要用getsockopt再确认一下err
     int err = sockets::getSocketError(sockfd);
     if (err)
     {
@@ -169,17 +171,17 @@ void Connector::handleWrite()
                << err << " " << strerror_tl(err);
       retry(sockfd);
     }
-    else if (sockets::isSelfConnect(sockfd))
+    else if (sockets::isSelfConnect(sockfd))//防止自连接
     {
       LOG_WARN << "Connector::handleWrite - Self connect";
       retry(sockfd);
     }
     else
     {
-      setState(kConnected);
+      setState(kConnected);//其他情况标识连接建立
       if (connect_)
       {
-        newConnectionCallback_(sockfd);
+        newConnectionCallback_(sockfd);//调用回调，返回描述符
       }
       else
       {
@@ -214,6 +216,7 @@ void Connector::retry(int sockfd)
   {
     LOG_INFO << "Connector::retry - Retry connecting to " << serverAddr_.toIpPort()
              << " in " << retryDelayMs_ << " milliseconds. ";
+    //设置定时任务，重试连接server
     loop_->runAfter(retryDelayMs_/1000.0,
                     std::bind(&Connector::startInLoop, shared_from_this()));
     retryDelayMs_ = std::min(retryDelayMs_ * 2, kMaxRetryDelayMs);

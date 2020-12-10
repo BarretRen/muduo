@@ -71,7 +71,7 @@ class TcpClient : noncopyable
   void removeConnection(const TcpConnectionPtr& conn);
 
   EventLoop* loop_;
-  ConnectorPtr connector_; // avoid revealing Connector
+  ConnectorPtr connector_; // avoid revealing Connector, connecter指针
   const string name_;
   ConnectionCallback connectionCallback_;
   MessageCallback messageCallback_;
@@ -81,7 +81,7 @@ class TcpClient : noncopyable
   // always in loop thread
   int nextConnId_;
   mutable MutexLock mutex_;
-  TcpConnectionPtr connection_ GUARDED_BY(mutex_);
+  TcpConnectionPtr connection_ GUARDED_BY(mutex_);//一个client管理一个TcpConnection连接
 };
 
 }  // namespace net

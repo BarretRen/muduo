@@ -63,7 +63,7 @@ TcpClient::TcpClient(EventLoop* loop,
     connect_(true),
     nextConnId_(1)
 {
-  connector_->setNewConnectionCallback(
+  connector_->setNewConnectionCallback(//设置connecter的回调
       std::bind(&TcpClient::newConnection, this, _1));
   // FIXME setConnectFailedCallback
   LOG_INFO << "TcpClient::TcpClient[" << name_
@@ -107,7 +107,7 @@ void TcpClient::connect()
   LOG_INFO << "TcpClient::connect[" << name_ << "] - connecting to "
            << connector_->serverAddress().toIpPort();
   connect_ = true;
-  connector_->start();
+  connector_->start();//启动connector，尝试连接server
 }
 
 void TcpClient::disconnect()
@@ -118,7 +118,7 @@ void TcpClient::disconnect()
     MutexLockGuard lock(mutex_);
     if (connection_)
     {
-      connection_->shutdown();
+      connection_->shutdown();//被动方式关闭socket连接
     }
   }
 }
@@ -126,9 +126,9 @@ void TcpClient::disconnect()
 void TcpClient::stop()
 {
   connect_ = false;
-  connector_->stop();
+  connector_->stop();//调用conenctor stop，停止连接server
 }
-
+//连接建立时，connector指返回一个描述符，需要再这里创建TcpConnection对象
 void TcpClient::newConnection(int sockfd)
 {
   loop_->assertInLoopThread();
@@ -141,7 +141,7 @@ void TcpClient::newConnection(int sockfd)
   InetAddress localAddr(sockets::getLocalAddr(sockfd));
   // FIXME poll with zero timeout to double confirm the new connection
   // FIXME use make_shared if necessary
-  TcpConnectionPtr conn(new TcpConnection(loop_,
+  TcpConnectionPtr conn(new TcpConnection(loop_,//创建新的TcpConnection对象
                                           connName,
                                           sockfd,
                                           localAddr,
@@ -156,9 +156,9 @@ void TcpClient::newConnection(int sockfd)
     MutexLockGuard lock(mutex_);
     connection_ = conn;
   }
-  conn->connectEstablished();
+  conn->connectEstablished();//启动可读事件的监听
 }
-
+//socket连接关闭时，回调此函数
 void TcpClient::removeConnection(const TcpConnectionPtr& conn)
 {
   loop_->assertInLoopThread();
@@ -167,15 +167,15 @@ void TcpClient::removeConnection(const TcpConnectionPtr& conn)
   {
     MutexLockGuard lock(mutex_);
     assert(connection_ == conn);
-    connection_.reset();
+    connection_.reset();//重置指针
   }
 
-  loop_->queueInLoop(std::bind(&TcpConnection::connectDestroyed, conn));
+  loop_->queueInLoop(std::bind(&TcpConnection::connectDestroyed, conn));//销毁连接
   if (retry_ && connect_)
   {
     LOG_INFO << "TcpClient::connect[" << name_ << "] - Reconnecting to "
              << connector_->serverAddress().toIpPort();
-    connector_->restart();
+    connector_->restart();//connector重新开始连接server
   }
 }
 

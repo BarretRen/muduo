@@ -22,7 +22,7 @@ namespace net
 
 class EventLoop;
 
-class EventLoopThread : noncopyable
+class EventLoopThread : noncopyable//调用此类，会在原调用线程基础上创建一个新线程来运行EventLoop.loop循环
 {
  public:
   typedef std::function<void(EventLoop*)> ThreadInitCallback;
@@ -35,9 +35,9 @@ class EventLoopThread : noncopyable
  private:
   void threadFunc();
 
-  EventLoop* loop_ GUARDED_BY(mutex_);
+  EventLoop* loop_ GUARDED_BY(mutex_);//保存EventLoop对象
   bool exiting_;
-  Thread thread_;
+  Thread thread_;//创建的新线程，在此线程中运行EventLoop loop函数
   MutexLock mutex_;
   Condition cond_ GUARDED_BY(mutex_);
   ThreadInitCallback callback_;

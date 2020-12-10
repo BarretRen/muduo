@@ -17,7 +17,7 @@ EventLoopThread::EventLoopThread(const ThreadInitCallback& cb,
                                  const string& name)
   : loop_(NULL),
     exiting_(false),
-    thread_(std::bind(&EventLoopThread::threadFunc, this), name),
+    thread_(std::bind(&EventLoopThread::threadFunc, this), name),//创新新线程，执行threadFunc函数
     mutex_(),
     cond_(mutex_),
     callback_(cb)
@@ -39,7 +39,7 @@ EventLoopThread::~EventLoopThread()
 EventLoop* EventLoopThread::startLoop()
 {
   assert(!thread_.started());
-  thread_.start();
+  thread_.start();//启动执行线程
 
   EventLoop* loop = NULL;
   {
@@ -48,7 +48,7 @@ EventLoop* EventLoopThread::startLoop()
     {
       cond_.wait();
     }
-    loop = loop_;
+    loop = loop_;//新线程已经开始运行，返回EventLoop对象指针
   }
 
   return loop;
@@ -66,10 +66,10 @@ void EventLoopThread::threadFunc()
   {
     MutexLockGuard lock(mutex_);
     loop_ = &loop;
-    cond_.notify();
+    cond_.notify();//通知原线程，新线程已经创建开始运行，并且已经修改了loop_的值
   }
 
-  loop.loop();
+  loop.loop();//在新线程中执行loop循环
   //assert(exiting_);
   MutexLockGuard lock(mutex_);
   loop_ = NULL;

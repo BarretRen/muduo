@@ -53,7 +53,7 @@ class IgnoreSigPipe
 };
 #pragma GCC diagnostic error "-Wold-style-cast"
 
-IgnoreSigPipe initObj;
+IgnoreSigPipe initObj;//构建一个全局对象，用于忽略SIGPIPE信后
 }  // namespace
 
 EventLoop* EventLoop::getEventLoopOfCurrentThread()
